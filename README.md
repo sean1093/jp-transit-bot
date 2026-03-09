@@ -1,14 +1,14 @@
 # JP-Transit Bot
 
-A LINE Bot powered by Google Apps Script and Gemini API that provides Japanese transportation information for elderly travelers. The bot uses Gemini's Google Search grounding to deliver real-time, accurate transit data in Traditional Chinese with bilingual station names.
+A simple LINE Bot for querying Japanese transportation information. Powered by Google Apps Script and Gemini API with Google Search grounding to deliver real-time, accurate transit data in Traditional Chinese with bilingual station names.
 
 ## Features
 
-- **Real-time Transit Information**: Uses Gemini 1.5 with Google Search grounding for accurate, up-to-date data
+- **Real-time Transit Information**: Uses Gemini 2.5 Flash with Google Search for accurate, up-to-date data
 - **Bilingual Support**: All station names displayed as "中文 (日文)"
-- **Automatic Fallback**: Switches from Flash to Pro model on quota/error
+- **LINE Integration**: Quick and easy queries through LINE chat
+- **Error Handling**: User-friendly error messages when quota is exceeded
 - **Simple & Direct**: No fluff, just structured transport data
-- **Traditional Chinese Output**: Optimized for elderly Taiwanese users
 
 ## Architecture
 
@@ -16,7 +16,7 @@ A LINE Bot powered by Google Apps Script and Gemini API that provides Japanese t
 - **Deployment**: Web App (Execute as Me, Access: Anyone)
 - **APIs**:
   - LINE Messaging API (Reply Message)
-  - Google Gemini API (gemini-1.5-flash-latest → gemini-1.5-pro-latest)
+  - Google Gemini API 2.5 Flash
 
 ## Setup Instructions
 
@@ -24,10 +24,10 @@ A LINE Bot powered by Google Apps Script and Gemini API that provides Japanese t
 
 #### LINE Messaging API
 1. Go to [LINE Developers Console](https://developers.line.biz/console/)
-2. Create a new channel or use existing one
+2. Create a new **Messaging API** channel (not LINE Login)
 3. Go to "Messaging API" tab
-4. Copy the **Channel Access Token**
-5. Set webhook URL (you'll get this after deployment)
+4. Issue and copy the **Channel Access Token (long-lived)**
+5. Note: This is different from Channel Secret
 
 #### Google Gemini API
 1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
@@ -36,58 +36,66 @@ A LINE Bot powered by Google Apps Script and Gemini API that provides Japanese t
 
 ### 2. Deploy to Google Apps Script
 
-#### Option A: Using Google Apps Script Editor (Recommended)
-
-1. Go to [Google Apps Script](https://script.google.com/)
-2. Create a new project named "JP-Transit Bot"
-3. Delete the default `Code.gs` content
-4. Copy the contents of `Code.gs` from this repo
-5. Create a new file `appsscript.json` and copy its contents from this repo
-6. Go to **Project Settings** (gear icon)
-7. Scroll to **Script Properties** and add:
-   - `LINE_CHANNEL_ACCESS_TOKEN`: Your LINE token
-   - `GEMINI_API_KEY`: Your Gemini API key
-
-#### Option B: Using Clasp (Command Line)
+#### Option A: Using Clasp (Recommended for Development)
 
 ```bash
-# Install clasp globally
+# Clone this repository
+git clone https://github.com/sean1093/jp-transit-bot.git
+cd jp-transit-bot
+
+# Install clasp globally (if not installed)
 npm install -g @google/clasp
 
 # Login to Google
 clasp login
 
-# Create new project
-clasp create --type webapp --title "JP-Transit Bot"
+# Create .clasp.json with your script ID
+# Or use existing .clasp.json if you're the owner
 
 # Push code to Google Apps Script
 clasp push
 
 # Open in browser to configure
-clasp open
+# Visit: https://script.google.com/home/projects/YOUR_SCRIPT_ID/edit
 ```
 
-Then configure Script Properties as described in Option A, step 7.
+Then configure Script Properties:
+1. Click **Project Settings** (gear icon)
+2. Scroll to **Script Properties**
+3. Add properties:
+   - `LINE_CHANNEL_ACCESS_TOKEN`: Your LINE channel access token
+   - `GEMINI_API_KEY`: Your Gemini API key
+
+#### Option B: Using Google Apps Script Editor
+
+1. Go to [Google Apps Script](https://script.google.com/)
+2. Create a new project named "JP-Transit Bot"
+3. Delete the default `Code.gs` content
+4. Copy the contents of [Code.gs](Code.gs) from this repo
+5. Create a new file `appsscript.json` and copy its contents
+6. Configure Script Properties as described in Option A
 
 ### 3. Deploy as Web App
 
-1. In Google Apps Script, click **Deploy** → **New deployment**
-2. Click **Select type** → **Web app**
+1. In Google Apps Script, click **Deploy** → **Manage deployments**
+2. Click the **Edit** icon (pencil) on @HEAD deployment
 3. Configure:
-   - **Description**: "JP Transit Bot v1"
-   - **Execute as**: Me
-   - **Who has access**: Anyone
+   - **Execute as**: Me (your email)
+   - **Who has access**: **Anyone** ⬅️ Important!
 4. Click **Deploy**
-5. Copy the **Web App URL**
+5. Copy the **Web App URL** (format: `https://script.google.com/macros/s/.../exec`)
 
 ### 4. Configure LINE Webhook
 
 1. Go back to [LINE Developers Console](https://developers.line.biz/console/)
-2. Select your channel
+2. Select your Messaging API channel
 3. Go to "Messaging API" tab
-4. Paste the Web App URL into **Webhook URL**
-5. Click **Verify** to test the connection
-6. Enable **Use webhook**
+4. In **Webhook settings**:
+   - Paste the Web App URL into **Webhook URL**
+   - Click **Update**
+   - Click **Verify** (should show Success ✅)
+   - Enable **Use webhook** toggle
+5. **Important**: Disable **Auto-reply messages** to prevent duplicate responses
 
 ## Usage
 
@@ -108,18 +116,36 @@ The bot will reply with:
 * 目的地：長野 (長野) 方向
 ```
 
+If API quota is exceeded or errors occur, the bot will reply:
+```
+今日使用已達上限
+```
+
 ## Testing
 
 ### Test Gemini API Integration
 
 1. Open your Google Apps Script project
-2. Uncomment the `testGemini()` function in [Code.gs](Code.gs)
-3. Run the function
-4. Check logs: **Execution log** to see the response
+2. Select the `testGemini` function from the dropdown
+3. Click **Run** (▶️)
+4. Check **Execution log** to see the response
 
-### Test LINE Webhook
+### Test Deployment Health
 
-Use LINE's webhook tester or send a test message from LINE app.
+Visit your Web App URL in a browser. You should see:
+```json
+{
+  "status": "ok",
+  "message": "JP-Transit Bot is running",
+  "timestamp": "2026-03-09T..."
+}
+```
+
+### Test LINE Integration
+
+1. Add your bot as a LINE friend (scan QR code in Messaging API tab)
+2. Send a test message
+3. Check Apps Script **Executions** tab for logs if issues occur
 
 ## Project Structure
 
@@ -127,7 +153,10 @@ Use LINE's webhook tester or send a test message from LINE app.
 jp-transit-bot/
 ├── Code.gs              # Main application logic
 ├── appsscript.json      # Apps Script manifest
+├── .clasp.json          # Clasp configuration (local only, not in git)
+├── .claspignore         # Files to exclude from clasp push
 ├── .env.example         # Environment variables template
+├── .gitignore           # Git ignore rules
 ├── SPEC.md             # Technical specification
 └── README.md           # This file
 ```
@@ -135,49 +164,86 @@ jp-transit-bot/
 ## Key Files
 
 - [Code.gs](Code.gs) - Main webhook handler, Gemini API integration, LINE messaging
+  - `doPost(e)` - Webhook entry point
+  - `doGet(e)` - Health check endpoint
+  - `getGeminiResponse(text)` - Gemini API call with Google Search
+  - `sendLineMessage(token, text)` - LINE reply API
+  - `testGemini()` - Test function for development
 - [appsscript.json](appsscript.json) - Apps Script configuration (timezone: Asia/Tokyo)
 - [SPEC.md](SPEC.md) - Detailed technical specification
 
 ## Error Handling
 
-The bot includes robust error handling:
+The bot includes comprehensive error handling:
 
-1. **Model Fallback**: Automatically switches from `gemini-1.5-flash-latest` to `gemini-1.5-pro-latest` if quota is exceeded (429) or errors occur (500)
-2. **API Validation**: Checks for missing credentials in Script Properties
-3. **Response Validation**: Verifies API responses before sending to LINE
-4. **Logging**: All errors logged to Stackdriver for debugging
+1. **Request Validation**: Checks for valid webhook payloads
+2. **Error Messages**: Sends "今日使用已達上限" when API fails
+3. **Always Returns 200**: Prevents LINE from retrying failed webhooks
+4. **Detailed Logging**: All errors logged to Apps Script execution logs
 
 ## System Instructions
 
-The Gemini API is configured with strict instructions to:
+The Gemini API is configured with strict instructions:
 
 - Output in Traditional Chinese only
 - Format station names as "中文 (日文)"
 - Use bullet-point formatting
 - Include train name, times, platform, destination
 - Provide factual data only (no weather warnings or small talk)
+- Temperature set to 0.0 for consistency
+
+## API Configuration
+
+### Gemini 2.5 Flash
+- **Model**: `gemini-2.5-flash`
+- **Temperature**: 0.0 (factual responses)
+- **Max Output Tokens**: 8192
+- **Tools**: Google Search enabled
+
+### Free Tier Quotas
+- **Requests Per Minute (RPM)**: 15
+- **Requests Per Day (RPD)**: 1,500
+- **Tokens Per Minute (TPM)**: 1,000,000
+
+For typical transit queries (~300-400 tokens), you can handle **~1,500 queries per day** on the free tier.
 
 ## Troubleshooting
 
-### Webhook verification fails
-- Ensure Web App is deployed with "Anyone" access
-- Check that the correct URL is copied to LINE console
-- Verify Script Properties are set correctly
+### Webhook Returns 302 Error
+- Ensure Web App deployment has **"Who has access: Anyone"**
+- Use the correct URL format ending with `/exec`
+- Redeploy by editing @HEAD deployment settings
 
-### No response from bot
-- Check Google Apps Script execution logs
-- Verify `GEMINI_API_KEY` is valid
-- Check if quota limits are reached
+### No Response from Bot
+- Check **Executions** tab in Apps Script for errors
+- Verify `GEMINI_API_KEY` and `LINE_CHANNEL_ACCESS_TOKEN` in Script Properties
+- Ensure "Use webhook" is enabled in LINE console
 
-### Wrong language or format
-- System instructions are enforced at temperature 0.0
-- If issues persist, check the `SYSTEM_INSTRUCTION` constant in [Code.gs:8-28](Code.gs#L8-L28)
+### Bot Replies Twice
+- Disable **Auto-reply messages** in LINE Messaging API settings
 
-## API Quotas
+### Wrong Language or Format
+- System instructions enforce Traditional Chinese at temperature 0.0
+- Check `SYSTEM_INSTRUCTION` constant in [Code.gs:11-28](Code.gs#L11-L28)
 
-- **Gemini 1.5 Flash**: Higher rate limits, faster responses
-- **Gemini 1.5 Pro**: Fallback model, better quality but lower rate limits
+### API Quota Exceeded
 - Monitor usage at [Google AI Studio](https://aistudio.google.com/)
+- Consider upgrading to pay-as-you-go for higher limits (~$0.30 per 1,000 queries)
+
+## Development Workflow
+
+1. **Make changes locally** to `Code.gs`
+2. **Push to Apps Script**: `clasp push`
+3. **Test**: Run `testGemini()` or send LINE message
+4. **Commit**: `git add . && git commit -m "message" && git push`
+
+Note: The deployment updates automatically when you push with clasp.
+
+## Security
+
+✅ **No API keys in code**: All credentials stored in Script Properties
+✅ **No sensitive data in repository**: `.clasp.json` is gitignored
+✅ **HTTPS only**: All API calls use secure connections
 
 ## License
 
