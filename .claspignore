@@ -1,0 +1,18 @@
+# Ignore version control
+.git/**
+.gitignore
+
+# Ignore node modules
+node_modules/**
+
+# Ignore documentation
+README.md
+SPEC.md
+.env.example
+
+# Ignore clasp config (don't push this)
+.clasp.json
+
+# Ignore other common files
+.DS_Store
+*.log
