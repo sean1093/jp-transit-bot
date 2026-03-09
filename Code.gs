@@ -94,12 +94,7 @@ function getGeminiResponse(text) {
     ],
     tools: [
       {
-        google_search_retrieval: {
-          dynamic_retrieval_config: {
-            mode: "MODE_DYNAMIC",
-            dynamic_threshold: 0.3
-          }
-        }
+        googleSearch: {}
       }
     ],
     generationConfig: {
