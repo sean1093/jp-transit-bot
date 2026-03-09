@@ -227,3 +227,15 @@ function testGemini() {
     Logger.log('Error: ' + error.toString());
   }
 }
+
+/**
+ * Simple GET handler to verify deployment
+ * This helps diagnose 302 redirect issues
+ */
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({
+    status: 'ok',
+    message: 'JP-Transit Bot is running',
+    timestamp: new Date().toISOString()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
