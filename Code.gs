@@ -33,8 +33,22 @@ const SYSTEM_INSTRUCTION = `你是一位專業的日本交通調度員 (Professi
  */
 function doPost(e) {
   try {
+    // Validate request
+    if (!e || !e.postData || !e.postData.contents) {
+      Logger.log('Invalid request: no postData');
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     // Parse incoming LINE webhook
     const contents = JSON.parse(e.postData.contents);
+
+    // Validate events
+    if (!contents.events || contents.events.length === 0) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     const events = contents.events;
 
     // Process each event
@@ -43,20 +57,32 @@ function doPost(e) {
         const userMessage = event.message.text;
         const replyToken = event.replyToken;
 
-        // Get response from Gemini
-        const response = getGeminiResponse(userMessage);
+        try {
+          // Get response from Gemini
+          const response = getGeminiResponse(userMessage);
 
-        // Send reply via LINE
-        sendLineMessage(replyToken, response);
+          // Send reply via LINE
+          sendLineMessage(replyToken, response);
+        } catch (error) {
+          Logger.log('Error processing message: ' + error.toString());
+          // Send error message to user
+          try {
+            sendLineMessage(replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。');
+          } catch (e) {
+            Logger.log('Failed to send error message: ' + e.toString());
+          }
+        }
       }
     });
 
-    return ContentService.createTextOutput(JSON.stringify({ status: 'success' }))
+    // Always return 200 OK
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
     Logger.log('Error in doPost: ' + error.toString());
-    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: error.toString() }))
+    // Still return 200 to prevent LINE from retrying
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 }
