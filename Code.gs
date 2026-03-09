@@ -67,7 +67,7 @@ function doPost(e) {
           Logger.log('Error processing message: ' + error.toString());
           // Send error message to user
           try {
-            sendLineMessage(replyToken, '抱歉，系統暫時無法處理您的請求，請稍後再試。');
+            sendLineMessage(replyToken, '今日使用已達上限');
           } catch (e) {
             Logger.log('Failed to send error message: ' + e.toString());
           }
