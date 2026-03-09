@@ -4,8 +4,8 @@
  * Provides Japanese transit information for elderly travelers
  */
 
-// Model fallback configuration
-const MODELS = ['gemini-1.5-flash-002', 'gemini-1.5-pro-002'];
+// Model configuration
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 // System instruction for Gemini API
 const SYSTEM_INSTRUCTION = `你是一位專業的日本交通調度員 (Professional Japan Transit Dispatcher)。
@@ -43,8 +43,8 @@ function doPost(e) {
         const userMessage = event.message.text;
         const replyToken = event.replyToken;
 
-        // Get response from Gemini with fallback
-        const response = getGeminiResponseWithFallback(userMessage);
+        // Get response from Gemini
+        const response = getGeminiResponse(userMessage);
 
         // Send reply via LINE
         sendLineMessage(replyToken, response);
@@ -62,49 +62,18 @@ function doPost(e) {
 }
 
 /**
- * Get response from Gemini API with automatic model fallback
- * @param {string} text - User's message
- * @return {string} - Generated response
- */
-function getGeminiResponseWithFallback(text) {
-  let lastError = null;
-
-  // Try each model in sequence
-  for (let i = 0; i < MODELS.length; i++) {
-    try {
-      const response = getGeminiResponse(text, MODELS[i]);
-      Logger.log(`Success with model: ${MODELS[i]}`);
-      return response;
-    } catch (error) {
-      lastError = error;
-      Logger.log(`Failed with model ${MODELS[i]}: ${error.toString()}`);
-
-      // If it's the last model, throw the error
-      if (i === MODELS.length - 1) {
-        throw error;
-      }
-      // Otherwise, continue to next model
-    }
-  }
-
-  // This should never be reached, but just in case
-  throw new Error('All models failed: ' + (lastError ? lastError.toString() : 'Unknown error'));
-}
-
-/**
  * Call Gemini API with Google Search grounding
  * @param {string} text - User's message
- * @param {string} model - Model name to use
  * @return {string} - Generated response
  */
-function getGeminiResponse(text, model) {
+function getGeminiResponse(text) {
   const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
 
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY not found in Script Properties');
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
   const payload = {
     system_instruction: {
@@ -231,7 +200,7 @@ function sendLineMessage(replyToken, text) {
 function testGemini() {
   const testMessage = "明日 09:00 東京到輕井澤";
   try {
-    const response = getGeminiResponseWithFallback(testMessage);
+    const response = getGeminiResponse(testMessage);
     Logger.log('Response: ' + response);
   } catch (error) {
     Logger.log('Error: ' + error.toString());
