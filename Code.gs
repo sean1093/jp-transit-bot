@@ -5,7 +5,7 @@
  */
 
 // Model fallback configuration
-const MODELS = ['gemini-1.5-flash-latest', 'gemini-1.5-pro-latest'];
+const MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro'];
 
 // System instruction for Gemini API
 const SYSTEM_INSTRUCTION = `你是一位專業的日本交通調度員 (Professional Japan Transit Dispatcher)。
