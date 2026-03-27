@@ -35,7 +35,7 @@ function doPost(e) {
   try {
     // Validate request
     if (!e || !e.postData || !e.postData.contents) {
-      Logger.log('Invalid request: no postData');
+      console.log('Invalid request: no postData');
       return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -64,12 +64,12 @@ function doPost(e) {
           // Send reply via LINE
           sendLineMessage(replyToken, response);
         } catch (error) {
-          Logger.log('Error processing message: ' + error.toString());
+          console.log('Error processing message: ' + error.toString());
           // Send error message to user
           try {
             sendLineMessage(replyToken, '今日使用已達上限');
           } catch (e) {
-            Logger.log('Failed to send error message: ' + e.toString());
+            console.log('Failed to send error message: ' + e.toString());
           }
         }
       }
@@ -80,7 +80,7 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
-    Logger.log('Error in doPost: ' + error.toString());
+    console.log('Error in doPost: ' + error.toString());
     // Still return 200 to prevent LINE from retrying
     return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -148,7 +148,7 @@ function getGeminiResponse(text) {
   }
 
   if (responseCode >= 400) {
-    Logger.log(`API Error ${responseCode}: ${responseText}`);
+    console.log(`API Error ${responseCode}: ${responseText}`);
     throw new Error(`API Error ${responseCode}: ${responseText}`);
   }
 
@@ -207,11 +207,11 @@ function sendLineMessage(replyToken, text) {
 
   if (responseCode !== 200) {
     const responseText = response.getContentText();
-    Logger.log(`LINE API Error ${responseCode}: ${responseText}`);
+    console.log(`LINE API Error ${responseCode}: ${responseText}`);
     throw new Error(`LINE API Error ${responseCode}: ${responseText}`);
   }
 
-  Logger.log('Message sent successfully');
+  console.log('Message sent successfully');
 }
 
 /**
@@ -222,9 +222,9 @@ function testGemini() {
   const testMessage = "明日 09:00 東京到輕井澤";
   try {
     const response = getGeminiResponse(testMessage);
-    Logger.log('Response: ' + response);
+    console.log('Response: ' + response);
   } catch (error) {
-    Logger.log('Error: ' + error.toString());
+    console.log('Error: ' + error.toString());
   }
 }
 
