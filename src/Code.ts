@@ -39,6 +39,18 @@ interface LineReplyPayload {
   }>;
 }
 
+interface LineBroadcastPayload {
+  messages: Array<{
+    type: string;
+    text: string;
+  }>;
+}
+
+interface LineQuotaResponse {
+  type: string;
+  value: number;
+}
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -257,6 +269,114 @@ function sendLineMessage(replyToken: string, text: string): void {
   }
 
   console.log('Message sent successfully');
+}
+
+/**
+ * Broadcast message to all LINE Bot friends
+ * Note: Free tier has 500 messages/month quota
+ * @param text - Message text to broadcast
+ */
+function broadcastMessage(text: string): void {
+  const accessToken = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+
+  if (!accessToken) {
+    throw new Error('LINE_CHANNEL_ACCESS_TOKEN not found in Script Properties');
+  }
+
+  const url = 'https://api.line.me/v2/bot/message/broadcast';
+
+  const payload: LineBroadcastPayload = {
+    messages: [
+      {
+        type: 'text',
+        text: text
+      }
+    ]
+  };
+
+  const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+    method: 'post',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + accessToken
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  const response = UrlFetchApp.fetch(url, options);
+  const responseCode = response.getResponseCode();
+
+  if (responseCode !== 200) {
+    const responseText = response.getContentText();
+    console.log(`LINE Broadcast API Error ${responseCode}: ${responseText}`);
+    throw new Error(`LINE Broadcast API Error ${responseCode}: ${responseText}`);
+  }
+
+  console.log('Broadcast message sent successfully');
+}
+
+/**
+ * Get remaining broadcast quota for current month
+ * @returns Number of remaining broadcast messages
+ */
+function getBroadcastQuota(): number {
+  const accessToken = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+
+  if (!accessToken) {
+    throw new Error('LINE_CHANNEL_ACCESS_TOKEN not found in Script Properties');
+  }
+
+  const url = 'https://api.line.me/v2/bot/message/quota';
+
+  const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+    method: 'get',
+    headers: {
+      'Authorization': 'Bearer ' + accessToken
+    },
+    muteHttpExceptions: true
+  };
+
+  const response = UrlFetchApp.fetch(url, options);
+  const responseCode = response.getResponseCode();
+
+  if (responseCode !== 200) {
+    const responseText = response.getContentText();
+    console.log(`LINE Quota API Error ${responseCode}: ${responseText}`);
+    throw new Error(`LINE Quota API Error ${responseCode}: ${responseText}`);
+  }
+
+  const result: LineQuotaResponse = JSON.parse(response.getContentText());
+  console.log(`Remaining broadcast quota: ${result.value}`);
+  return result.value;
+}
+
+/**
+ * Test function for broadcasting
+ * Run this to send a test broadcast to all friends
+ */
+function testBroadcast(): void {
+  try {
+    // Check quota first
+    const quota = getBroadcastQuota();
+    console.log(`Current quota: ${quota} messages remaining`);
+
+    if (quota === 0) {
+      console.log('No broadcast quota remaining this month');
+      return;
+    }
+
+    // Send test broadcast
+    const testMessage = '🚄 JP-Transit Bot 測試廣播\n\n這是一則測試訊息，確認廣播功能正常運作。';
+    broadcastMessage(testMessage);
+    console.log('Test broadcast sent successfully');
+
+    // Check quota after sending
+    const remainingQuota = getBroadcastQuota();
+    console.log(`Remaining quota after broadcast: ${remainingQuota}`);
+  } catch (error) {
+    console.log('Error: ' + (error as Error).toString());
+  }
 }
 
 /**
