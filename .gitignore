@@ -140,3 +140,6 @@ vite.config.ts.timestamp-*
 
 # Google Apps Script (clasp)
 .clasp.json
+
+# TypeScript build output
+build/

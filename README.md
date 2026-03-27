@@ -99,23 +99,30 @@ graph LR
    - Enable **Use webhook**
    - Disable **Auto-reply messages**
 
-#### Option 2: Deploy via Clasp (For Developers)
+#### Option 2: Deploy via Clasp with TypeScript (Recommended for Developers)
 
 ```bash
 # Clone and setup
 git clone https://github.com/sean1093/jp-transit-bot.git
 cd jp-transit-bot
 
-# Install clasp
+# Install dependencies
+npm install
+
+# Install clasp globally (if not already installed)
 npm install -g @google/clasp
 
-# Login and push
+# Login to Google
 clasp login
-clasp push
+
+# Build TypeScript and push to Apps Script
+npm run push
 
 # Configure credentials in Apps Script UI
 # Then deploy as Web App (see step 5-6 above)
 ```
+
+**Note**: This project uses TypeScript for type safety. The `npm run push` command automatically compiles TypeScript to JavaScript and pushes to Google Apps Script.
 
 ## 📖 Usage
 
@@ -130,24 +137,34 @@ clasp push
 
 ```
 jp-transit-bot/
-├── Code.gs              # Main application (webhook, Gemini API, LINE messaging)
-├── appsscript.json      # Apps Script manifest (timezone: Asia/Tokyo)
+├── src/
+│   ├── Code.ts          # Main application source (TypeScript)
+│   └── appsscript.json  # Apps Script manifest (timezone: Asia/Tokyo)
+├── build/               # Compiled JavaScript (auto-generated, gitignored)
+│   ├── Code.js          # Compiled from Code.ts
+│   └── appsscript.json  # Copied from src/
+├── package.json         # npm dependencies and scripts
+├── tsconfig.json        # TypeScript configuration
+├── .clasp.json          # Clasp configuration (gitignored)
 ├── .claspignore         # Clasp deployment exclusions
 ├── .env.example         # Environment variables template
 ├── .gitignore           # Git exclusions
 ├── SPEC.md             # Technical specification
+├── LICENSE              # MIT License
 └── README.md           # This file
 ```
 
-### Core Functions
+### Core Functions (TypeScript)
 
-| Function | Description |
-|----------|-------------|
-| `doPost(e)` | Webhook handler for LINE messages |
-| `doGet(e)` | Health check endpoint |
-| `getGeminiResponse(text)` | Gemini API integration with Google Search |
-| `sendLineMessage(token, text)` | LINE reply message sender |
-| `testGemini()` | Local testing function |
+All source code is written in TypeScript for type safety and better developer experience.
+
+| Function | Description | Parameters |
+|----------|-------------|------------|
+| `doPost(e)` | Webhook handler for LINE messages | `GoogleAppsScript.Events.DoPost` |
+| `doGet(e)` | Health check endpoint | `GoogleAppsScript.Events.DoGet` |
+| `getGeminiResponse(text)` | Gemini API integration with Google Search | `text: string` |
+| `sendLineMessage(token, text)` | LINE reply message sender | `token: string, text: string` |
+| `testGemini()` | Local testing function | `void` |
 
 ## ⚙️ Configuration
 
@@ -237,7 +254,7 @@ curl https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
 <summary><b>Wrong Language or Format</b></summary>
 
 - Temperature is set to 0.0 for consistency
-- Check `SYSTEM_INSTRUCTION` in [Code.gs:11-28](Code.gs#L11-L28)
+- Check `SYSTEM_INSTRUCTION` in [src/Code.ts](src/Code.ts)
 - Verify Gemini API is using correct model
 </details>
 
@@ -251,26 +268,49 @@ curl https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
 
 ## 🛠️ Development
 
-### Local Development Workflow
+### Local Development Workflow (TypeScript)
 
 ```bash
-# 1. Make changes to Code.gs locally
-# 2. Push to Apps Script
-clasp push
+# 1. Install dependencies (first time only)
+npm install
 
-# 3. Test in Apps Script Editor or via LINE
-# 4. Commit to Git
+# 2. Make changes to src/Code.ts locally
+
+# 3. Build and push to Apps Script
+npm run push
+# This compiles TypeScript and pushes to Google Apps Script
+
+# 4. Test in Apps Script Editor or via LINE
+
+# 5. Commit to Git
 git add .
 git commit -m "Your message"
 git push
 ```
 
+### Available npm Scripts
+
+```bash
+npm run build    # Compile TypeScript to JavaScript
+npm run push     # Build and push to Google Apps Script
+npm run watch    # Watch mode for development
+npm run deploy   # Build, push, and create new deployment
+npm run clean    # Remove build directory
+```
+
+### TypeScript Benefits
+
+- **Type Safety**: Catch errors at compile time
+- **Better IDE Support**: IntelliSense and autocomplete
+- **Google Apps Script Types**: Full type definitions via `@types/google-apps-script`
+- **Modern JavaScript**: Use latest ES features, compiled to ES2019
+
 ### Code Quality
 
-- **Linting**: Follow Google Apps Script best practices
+- **Type Safety**: Full TypeScript with strict mode
 - **Error Handling**: Comprehensive try-catch with logging
 - **Documentation**: JSDoc comments for all functions
-- **Type Safety**: Parameter validation and null checks
+- **Interfaces**: Well-defined types for LINE/Gemini APIs
 
 ## 🤝 Contributing
 

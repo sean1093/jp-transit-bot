@@ -1,13 +1,50 @@
 /**
  * JP-Transit Bot
  * LINE Bot powered by Google Apps Script and Gemini API
- * Provides Japanese transit information for elderly travelers
+ * Provides Japanese transit information for travelers
  */
 
-// Model configuration
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+interface LineWebhookEvent {
+  type: string;
+  message?: {
+    type: string;
+    text?: string;
+  };
+  replyToken: string;
+}
+
+interface LineWebhookPayload {
+  events: LineWebhookEvent[];
+}
+
+interface GeminiResponse {
+  candidates: Array<{
+    content: {
+      parts: Array<{
+        text: string;
+      }>;
+    };
+  }>;
+}
+
+interface LineReplyPayload {
+  replyToken: string;
+  messages: Array<{
+    type: string;
+    text: string;
+  }>;
+}
+
+// ============================================================================
+// Constants
+// ============================================================================
+
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
-// System instruction for Gemini API
 const SYSTEM_INSTRUCTION = `你是一位專業的日本交通調度員 (Professional Japan Transit Dispatcher)。
 
 **嚴格遵守以下規則：**
@@ -27,11 +64,15 @@ const SYSTEM_INSTRUCTION = `你是一位專業的日本交通調度員 (Professi
 * 乘車月台：[月台資訊]
 * 目的地：[站名 (日文)] 方向`;
 
+// ============================================================================
+// Main Functions
+// ============================================================================
+
 /**
  * Webhook handler for LINE Messaging API
- * @param {Object} e - Event object from LINE
+ * @param e - Event object from LINE
  */
-function doPost(e) {
+function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.TextOutput {
   try {
     // Validate request
     if (!e || !e.postData || !e.postData.contents) {
@@ -41,7 +82,7 @@ function doPost(e) {
     }
 
     // Parse incoming LINE webhook
-    const contents = JSON.parse(e.postData.contents);
+    const contents: LineWebhookPayload = JSON.parse(e.postData.contents);
 
     // Validate events
     if (!contents.events || contents.events.length === 0) {
@@ -52,10 +93,14 @@ function doPost(e) {
     const events = contents.events;
 
     // Process each event
-    events.forEach(event => {
-      if (event.type === 'message' && event.message.type === 'text') {
+    events.forEach((event: LineWebhookEvent) => {
+      if (event.type === 'message' && event.message?.type === 'text') {
         const userMessage = event.message.text;
         const replyToken = event.replyToken;
+
+        if (!userMessage) {
+          return;
+        }
 
         try {
           // Get response from Gemini
@@ -64,12 +109,12 @@ function doPost(e) {
           // Send reply via LINE
           sendLineMessage(replyToken, response);
         } catch (error) {
-          console.log('Error processing message: ' + error.toString());
+          console.log('Error processing message: ' + (error as Error).toString());
           // Send error message to user
           try {
             sendLineMessage(replyToken, '今日使用已達上限');
           } catch (e) {
-            console.log('Failed to send error message: ' + e.toString());
+            console.log('Failed to send error message: ' + (e as Error).toString());
           }
         }
       }
@@ -80,7 +125,7 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (error) {
-    console.log('Error in doPost: ' + error.toString());
+    console.log('Error in doPost: ' + (error as Error).toString());
     // Still return 200 to prevent LINE from retrying
     return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -89,10 +134,10 @@ function doPost(e) {
 
 /**
  * Call Gemini API with Google Search grounding
- * @param {string} text - User's message
- * @return {string} - Generated response
+ * @param text - User's message
+ * @returns Generated response
  */
-function getGeminiResponse(text) {
+function getGeminiResponse(text: string): string {
   const apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
 
   if (!apiKey) {
@@ -131,7 +176,7 @@ function getGeminiResponse(text) {
     }
   };
 
-  const options = {
+  const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
     method: 'post',
     contentType: 'application/json',
     payload: JSON.stringify(payload),
@@ -153,7 +198,7 @@ function getGeminiResponse(text) {
   }
 
   // Parse response
-  const result = JSON.parse(responseText);
+  const result: GeminiResponse = JSON.parse(responseText);
 
   if (!result.candidates || result.candidates.length === 0) {
     throw new Error('No candidates in response');
@@ -170,10 +215,10 @@ function getGeminiResponse(text) {
 
 /**
  * Send reply message via LINE Messaging API
- * @param {string} replyToken - Reply token from LINE webhook
- * @param {string} text - Message text to send
+ * @param replyToken - Reply token from LINE webhook
+ * @param text - Message text to send
  */
-function sendLineMessage(replyToken, text) {
+function sendLineMessage(replyToken: string, text: string): void {
   const accessToken = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
 
   if (!accessToken) {
@@ -182,7 +227,7 @@ function sendLineMessage(replyToken, text) {
 
   const url = 'https://api.line.me/v2/bot/message/reply';
 
-  const payload = {
+  const payload: LineReplyPayload = {
     replyToken: replyToken,
     messages: [
       {
@@ -192,7 +237,7 @@ function sendLineMessage(replyToken, text) {
     ]
   };
 
-  const options = {
+  const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
     method: 'post',
     headers: {
       'Content-Type': 'application/json',
@@ -218,13 +263,13 @@ function sendLineMessage(replyToken, text) {
  * Test function for local development
  * Uncomment and run this to test Gemini API integration
  */
-function testGemini() {
+function testGemini(): void {
   const testMessage = "明日 09:00 東京到輕井澤";
   try {
     const response = getGeminiResponse(testMessage);
     console.log('Response: ' + response);
   } catch (error) {
-    console.log('Error: ' + error.toString());
+    console.log('Error: ' + (error as Error).toString());
   }
 }
 
@@ -232,7 +277,7 @@ function testGemini() {
  * Simple GET handler to verify deployment
  * This helps diagnose 302 redirect issues
  */
-function doGet(e) {
+function doGet(_e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Content.TextOutput {
   return ContentService.createTextOutput(JSON.stringify({
     status: 'ok',
     message: 'JP-Transit Bot is running',

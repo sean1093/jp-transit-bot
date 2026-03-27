@@ -1,0 +1,29 @@
+{
+  "name": "jp-transit-bot",
+  "version": "1.0.0",
+  "description": "A serverless LINE chatbot for Japanese transportation information",
+  "main": "build/Code.js",
+  "scripts": {
+    "build": "tsc && cp src/appsscript.json build/",
+    "push": "npm run build && clasp push",
+    "watch": "tsc --watch",
+    "deploy": "npm run build && clasp push && clasp deploy",
+    "clean": "rm -rf build"
+  },
+  "keywords": [
+    "line-bot",
+    "google-apps-script",
+    "gemini-api",
+    "japan-transit",
+    "typescript"
+  ],
+  "author": "Sean Chou",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/google-apps-script": "^1.0.83",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

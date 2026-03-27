@@ -9,9 +9,19 @@ node_modules/**
 README.md
 SPEC.md
 .env.example
+LICENSE
 
 # Ignore clasp config (don't push this)
 .clasp.json
+
+# Ignore TypeScript source files (only push compiled JS)
+src/**
+tsconfig.json
+package.json
+package-lock.json
+
+# Ignore build artifacts (clasp will push from build/)
+build/**/*.ts
 
 # Ignore other common files
 .DS_Store
