@@ -342,55 +342,70 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
 
     const events = contents.events;
 
-    // Process each event
-    events.forEach((event: LineWebhookEvent) => {
-      const replyToken = event.replyToken;
+    // Process each event (避免 timeout，只處理第一個 event)
+    const event = events[0];
+    if (!event) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
-      // Handle text message
-      if (event.type === 'message' && event.message?.type === 'text') {
-        const userMessage = event.message.text;
+    const replyToken = event.replyToken;
 
-        if (!userMessage) {
-          return;
+    // Handle text message
+    if (event.type === 'message' && event.message?.type === 'text') {
+      const userMessage = event.message.text;
+
+      if (!userMessage) {
+        return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      try {
+        // Debug: Log received message
+        console.log(`收到訊息: "${userMessage}"`);
+
+        // Check for Rich Menu keywords (只處理 3 個 Rich Menu 功能)
+        const helpKeywords = ['幫助', '說明', '教學', 'help', '使用方法', '使用說明'];
+        const attractionKeywords = ['熱門景點', '景點', '觀光', '旅遊'];
+        const emergencyKeywords = ['緊急求助', '求助', '迷路', '幫忙', 'SOS'];
+
+        const isHelpRequest = helpKeywords.some(keyword => userMessage.includes(keyword));
+        const isAttractionRequest = attractionKeywords.some(keyword => userMessage.includes(keyword));
+        const isEmergencyRequest = emergencyKeywords.some(keyword => userMessage.includes(keyword));
+
+        // Debug: Log keyword matching results
+        console.log(`關鍵字匹配 - 景點:${isAttractionRequest}, 說明:${isHelpRequest}, 緊急:${isEmergencyRequest}`);
+
+        if (isAttractionRequest) {
+          // 直接回覆熱門景點選單 (不經過 Gemini)
+          console.log('觸發：熱門景點選單');
+          sendAttractionsMenu(replyToken);
+        } else if (isHelpRequest) {
+          // 直接回覆使用說明 (不經過 Gemini)
+          console.log('觸發：使用說明');
+          sendHelpMessage(replyToken);
+        } else if (isEmergencyRequest) {
+          // 直接回覆緊急求助資訊 (不經過 Gemini)
+          console.log('觸發：緊急求助');
+          sendEmergencyInfo(replyToken);
+        } else {
+          // 其他訊息交給 Gemini 處理
+          console.log('觸發：Gemini API 查詢');
+          const response = getGeminiResponse(userMessage);
+
+          // Send reply via LINE with quick reply buttons
+          sendLineMessageWithQuickReply(replyToken, response);
         }
-
+      } catch (error) {
+        console.log('Error processing message: ' + (error as Error).toString());
+        // Send error message to user
         try {
-          // Check for Rich Menu keywords (只處理 3 個 Rich Menu 功能)
-          const helpKeywords = ['幫助', '說明', '教學', 'help', '使用方法', '使用說明'];
-          const attractionKeywords = ['熱門景點', '景點', '觀光', '旅遊'];
-          const emergencyKeywords = ['緊急求助', '求助', '迷路', '幫忙', 'SOS'];
-
-          const isHelpRequest = helpKeywords.some(keyword => userMessage.includes(keyword));
-          const isAttractionRequest = attractionKeywords.some(keyword => userMessage.includes(keyword));
-          const isEmergencyRequest = emergencyKeywords.some(keyword => userMessage.includes(keyword));
-
-          if (isAttractionRequest) {
-            // 直接回覆熱門景點選單 (不經過 Gemini)
-            sendAttractionsMenu(replyToken);
-          } else if (isHelpRequest) {
-            // 直接回覆使用說明 (不經過 Gemini)
-            sendHelpMessage(replyToken);
-          } else if (isEmergencyRequest) {
-            // 直接回覆緊急求助資訊 (不經過 Gemini)
-            sendEmergencyInfo(replyToken);
-          } else {
-            // 其他訊息交給 Gemini 處理
-            const response = getGeminiResponse(userMessage);
-
-            // Send reply via LINE with quick reply buttons
-            sendLineMessageWithQuickReply(replyToken, response);
-          }
-        } catch (error) {
-          console.log('Error processing message: ' + (error as Error).toString());
-          // Send error message to user
-          try {
-            sendLineMessage(replyToken, '今日使用已達上限');
-          } catch (e) {
-            console.log('Failed to send error message: ' + (e as Error).toString());
-          }
+          sendLineMessage(replyToken, '抱歉，系統處理時發生錯誤，請稍後再試');
+        } catch (e) {
+          console.log('Failed to send error message: ' + (e as Error).toString());
         }
       }
-    });
+    }
 
     // Always return 200 OK
     return ContentService.createTextOutput(JSON.stringify({ status: 'ok' }))
@@ -662,7 +677,27 @@ function testBroadcast(): void {
     }
 
     // Send test broadcast
-    const testMessage = '🚄 JP-Transit Bot 測試廣播\n\n這是一則測試訊息，確認廣播功能正常運作。';
+    const testMessage = `🎉 JP-Transit Bot 功能更新通知
+
+各位朋友大家好！
+
+我們剛剛更新了 Bot 的功能，現在聊天室底部有 3 個快速按鈕：
+
+⭐ **熱門景點**
+點擊可查看福岡周邊 8 個熱門景點，包含太宰府天滿宮、由布院溫泉、熊本城等，一鍵查詢交通路線！
+
+🆘 **緊急求助**
+提供緊急聯絡電話與實用日語應急用語，旅途中遇到困難可隨時查看。
+
+❓ **使用說明**
+不知道怎麼使用？點這裡查看完整教學。
+
+---
+
+💡 您也可以繼續直接輸入查詢，例如：
+「明天早上 9 點博多到熊本」
+
+祝您在日本旅途愉快！🎌`;
     broadcastMessage(testMessage);
     console.log('Test broadcast sent successfully');
 
