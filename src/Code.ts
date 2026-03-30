@@ -31,12 +31,28 @@ interface GeminiResponse {
   }>;
 }
 
+interface QuickReplyButton {
+  type: 'action';
+  action: {
+    type: 'message';
+    label: string;
+    text: string;
+  };
+}
+
+interface QuickReply {
+  items: QuickReplyButton[];
+}
+
+interface LineMessage {
+  type: string;
+  text: string;
+  quickReply?: QuickReply;
+}
+
 interface LineReplyPayload {
   replyToken: string;
-  messages: Array<{
-    type: string;
-    text: string;
-  }>;
+  messages: LineMessage[];
 }
 
 interface LineBroadcastPayload {
@@ -57,6 +73,16 @@ interface LineQuotaResponse {
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
+// Fukuoka popular routes for quick reply menu
+const FUKUOKA_ROUTES = [
+  { label: '🏯 福岡→熊本', text: '福岡到熊本' },
+  { label: '♨️ 福岡→由布院', text: '福岡到由布院' },
+  { label: '⛩️ 福岡→門司港', text: '福岡到門司港' },
+  { label: '🏙️ 博多→天神', text: '博多站到天神' },
+  { label: '✈️ 機場→博多', text: '福岡機場到博多站' },
+  { label: '❓ 使用說明', text: '使用說明' }
+];
+
 const SYSTEM_INSTRUCTION = `你是一位專業的日本交通調度員 (Professional Japan Transit Dispatcher)。
 
 **嚴格遵守以下規則：**
@@ -65,9 +91,10 @@ const SYSTEM_INSTRUCTION = `你是一位專業的日本交通調度員 (Professi
 2. **站名格式**：每個車站或地標必須使用「中文 (日文)」格式，例如：東京 (東京)、輕井澤 (軽井沢)。
 3. **格式化**：使用項目符號列表，提高可讀性。
 4. **必要資訊**：包含列車名稱、出發/抵達時間、月台編號、目的地。
-5. **嚴格事實**：不要有禮貌性寒暄或天氣警告，僅提供準確的交通資訊。
-6. **簡潔明瞭**：直接提供結構化的交通數據，不要多餘內容。
-7. **Google Maps 路線連結**：在每次回應的最後，必須附上 Google Maps 大眾運輸路線連結。格式為 https://www.google.com/maps/dir/起點站駅/終點站駅/?travelmode=transit，站名使用日文並加上「駅」後綴（例如：東京駅、軽井沢駅）。
+5. **票價資訊**：必須提供票價資訊（日圓），並標註是否可使用 JR Pass。如果有多種車票選擇（自由席、指定席等），請一併列出。
+6. **嚴格事實**：不要有禮貌性寒暄或天氣警告，僅提供準確的交通資訊。
+7. **簡潔明瞭**：直接提供結構化的交通數據，不要多餘內容。
+8. **Google Maps 路線連結**：在每次回應的最後，必須附上 Google Maps 大眾運輸路線連結。格式為 https://www.google.com/maps/dir/起點站駅/終點站駅/?travelmode=transit，站名使用日文並加上「駅」後綴（例如：東京駅、軽井沢駅）。
 
 **回應範例格式：**
 【推薦班次】
@@ -76,6 +103,8 @@ const SYSTEM_INSTRUCTION = `你是一位專業的日本交通調度員 (Professi
 * 抵達時間：[時間] 到達 [站名 (日文)]
 * 乘車月台：[月台資訊]
 * 目的地：[站名 (日文)] 方向
+* 💴 票價：[金額] 日圓
+* JR Pass：[可使用/不可使用]
 
 📍 查看路線詳情：https://www.google.com/maps/dir/[起點站駅]/[終點站駅]/?travelmode=transit`;
 
@@ -118,11 +147,26 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
         }
 
         try {
-          // Get response from Gemini
-          const response = getGeminiResponse(userMessage);
+          // Check for menu/help keywords
+          const menuKeywords = ['選單', '菜單', '熱門路線', '路線', 'menu'];
+          const helpKeywords = ['幫助', '說明', '教學', 'help', '使用方法'];
 
-          // Send reply via LINE
-          sendLineMessage(replyToken, response);
+          const isMenuRequest = menuKeywords.some(keyword => userMessage.includes(keyword));
+          const isHelpRequest = helpKeywords.some(keyword => userMessage.includes(keyword));
+
+          if (isMenuRequest) {
+            // Send popular routes menu
+            sendMenuMessage(replyToken);
+          } else if (isHelpRequest) {
+            // Send help message
+            sendHelpMessage(replyToken);
+          } else {
+            // Get response from Gemini
+            const response = getGeminiResponse(userMessage);
+
+            // Send reply via LINE with quick reply buttons
+            sendLineMessageWithQuickReply(replyToken, response);
+          }
         } catch (error) {
           console.log('Error processing message: ' + (error as Error).toString());
           // Send error message to user
@@ -272,6 +316,124 @@ function sendLineMessage(replyToken: string, text: string): void {
   }
 
   console.log('Message sent successfully');
+}
+
+/**
+ * Generate Quick Reply buttons from Fukuoka routes
+ * @returns Quick Reply object with route buttons
+ */
+function getQuickReplyButtons(): QuickReply {
+  return {
+    items: FUKUOKA_ROUTES.map(route => ({
+      type: 'action' as const,
+      action: {
+        type: 'message' as const,
+        label: route.label,
+        text: route.text
+      }
+    }))
+  };
+}
+
+/**
+ * Send LINE message with Quick Reply buttons
+ * @param replyToken - Reply token from LINE webhook
+ * @param text - Message text to send
+ */
+function sendLineMessageWithQuickReply(replyToken: string, text: string): void {
+  const accessToken = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+
+  if (!accessToken) {
+    throw new Error('LINE_CHANNEL_ACCESS_TOKEN not found in Script Properties');
+  }
+
+  const url = 'https://api.line.me/v2/bot/message/reply';
+
+  const payload: LineReplyPayload = {
+    replyToken: replyToken,
+    messages: [
+      {
+        type: 'text',
+        text: text,
+        quickReply: getQuickReplyButtons()
+      }
+    ]
+  };
+
+  const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+    method: 'post',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + accessToken
+    },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  const response = UrlFetchApp.fetch(url, options);
+  const responseCode = response.getResponseCode();
+
+  if (responseCode !== 200) {
+    const responseText = response.getContentText();
+    console.log(`LINE API Error ${responseCode}: ${responseText}`);
+    throw new Error(`LINE API Error ${responseCode}: ${responseText}`);
+  }
+
+  console.log('Message with quick reply sent successfully');
+}
+
+/**
+ * Send popular routes menu to user
+ * @param replyToken - Reply token from LINE webhook
+ */
+function sendMenuMessage(replyToken: string): void {
+  const menuText = `🚄 福岡周邊熱門路線
+
+請點選下方按鈕快速查詢：
+
+🏯 福岡 ⇄ 熊本
+♨️ 福岡 ⇄ 由布院（湯布院）
+⛩️ 福岡 ⇄ 門司港
+🏙️ 博多站 ⇄ 天神
+✈️ 福岡機場 ⇄ 博多站
+
+💡 或直接輸入查詢，例如：
+「明天早上 9 點博多到熊本」`;
+
+  sendLineMessageWithQuickReply(replyToken, menuText);
+}
+
+/**
+ * Send help/instruction message to user
+ * @param replyToken - Reply token from LINE webhook
+ */
+function sendHelpMessage(replyToken: string): void {
+  const helpText = `📖 JP-Transit Bot 使用說明
+
+🔍 **查詢方式：**
+直接輸入您的交通需求，例如：
+・明天早上 9 點博多到熊本
+・今天下午從天神到由布院
+・福岡機場到博多站
+
+📍 **回覆內容包含：**
+・班次時間與路線資訊
+・月台編號
+・💴 票價資訊
+・Google Maps 路線連結
+
+⚡ **快速查詢：**
+輸入「選單」或「熱門路線」
+查看福岡周邊常用路線
+
+💡 **小技巧：**
+・可使用 LINE 語音輸入功能
+・點選回覆中的連結可直接導航
+・支援自然語言查詢
+
+祝您旅途愉快！🎌`;
+
+  sendLineMessageWithQuickReply(replyToken, helpText);
 }
 
 /**
