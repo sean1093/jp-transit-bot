@@ -108,7 +108,45 @@ interface Attraction {
   name: string;
   station: string;
   emoji: string;
-  description?: string;
+  description: string;
+}
+
+interface HelpContent {
+  title: string;
+  sections: {
+    icon: string;
+    title: string;
+    items: string[];
+  }[];
+  footer: string;
+}
+
+interface EmergencyContent {
+  title: string;
+  stationService: {
+    title: string;
+    items: string[];
+  };
+  emergencyContacts: {
+    title: string;
+    items: string[];
+  };
+  japanesePhases: {
+    title: string;
+    items: {
+      chinese: string;
+      japanese: string;
+      romaji: string;
+    }[];
+  };
+  importantLocations: {
+    title: string;
+    items: string[];
+  };
+  tips: {
+    title: string;
+    items: string[];
+  };
 }
 
 // ============================================================================
@@ -117,115 +155,139 @@ interface Attraction {
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
-// Fukuoka popular routes for quick reply menu
-const FUKUOKA_ROUTES = [
-  { label: '🏯 福岡→熊本', text: '福岡到熊本' },
-  { label: '♨️ 福岡→由布院', text: '福岡到由布院' },
-  { label: '⛩️ 福岡→門司港', text: '福岡到門司港' },
-  { label: '🏙️ 博多→天神', text: '博多站到天神' },
-  { label: '✈️ 機場→博多', text: '福岡機場到博多站' },
-  { label: '❓ 使用說明', text: '使用說明' }
-];
+// ============================================================================
+// Rich Menu Content (JSON Format)
+// ============================================================================
 
-// Fukuoka attractions database
-const FUKUOKA_ATTRACTIONS: Attraction[] = [
-  { name: '太宰府天滿宮', station: '太宰府駅', emoji: '⛩️', description: '九州最知名神社，供奉學問之神' },
-  { name: '由布院溫泉', station: '由布院駅', emoji: '♨️', description: '日本知名溫泉鄉，環境優美' },
-  { name: '門司港懷舊區', station: '門司港駅', emoji: '🏛️', description: '保留明治時代建築的港口區' },
-  { name: '熊本城', station: '熊本駅', emoji: '🏯', description: '日本三大名城之一' },
-  { name: '福岡塔', station: '西新駅', emoji: '🗼', description: '福岡地標，可眺望博多灣' },
-  { name: '天神地下街', station: '天神駅', emoji: '🛍️', description: '福岡最大購物街' },
-  { name: '柳川遊船', station: '西鉄柳川駅', emoji: '🚣', description: '乘坐小舟遊覽水鄉' },
-  { name: '博多運河城', station: '中洲川端駅', emoji: '🏢', description: '大型購物娛樂複合設施' }
-];
+/**
+ * Help / Usage Instructions Content
+ */
+const HELP_CONTENT: HelpContent = {
+  title: '📖 JP-Transit Bot 使用說明',
+  sections: [
+    {
+      icon: '🔍',
+      title: '查詢方式：',
+      items: [
+        '直接輸入您的交通需求，例如：',
+        '・明天早上 9 點博多到熊本',
+        '・今天下午從天神到由布院',
+        '・福岡機場到博多站'
+      ]
+    },
+    {
+      icon: '📍',
+      title: '回覆內容包含：',
+      items: [
+        '・班次時間與路線資訊',
+        '・月台編號',
+        '・💴 票價資訊',
+        '・Google Maps 路線連結'
+      ]
+    },
+    {
+      icon: '💡',
+      title: '小技巧：',
+      items: [
+        '・可使用 LINE 語音輸入功能',
+        '・點選回覆中的連結可直接導航',
+        '・支援自然語言查詢'
+      ]
+    }
+  ],
+  footer: '祝您旅途愉快！🎌'
+};
 
-// Fukuoka major stations for location matching
-const FUKUOKA_STATIONS = [
-  { name: '博多駅', lat: 33.5904, lon: 130.4206 },
-  { name: '天神駅', lat: 33.5915, lon: 130.3987 },
-  { name: '福岡空港駅', lat: 33.5859, lon: 130.4510 },
-  { name: '西新駅', lat: 33.5839, lon: 130.3618 },
-  { name: '中洲川端駅', lat: 33.5950, lon: 130.4065 },
-  { name: '薬院駅', lat: 33.5798, lon: 130.4017 }
-];
+/**
+ * Fukuoka Attractions Content
+ */
+const ATTRACTIONS_CONTENT = {
+  title: '⭐ 福岡周邊熱門景點',
+  description: '請點選下方景點，我會告訴您如何前往：',
+  attractions: [
+    { name: '太宰府天滿宮', station: '太宰府駅', emoji: '⛩️', description: '九州最知名神社，供奉學問之神' },
+    { name: '由布院溫泉', station: '由布院駅', emoji: '♨️', description: '日本知名溫泉鄉，環境優美' },
+    { name: '門司港懷舊區', station: '門司港駅', emoji: '🏛️', description: '保留明治時代建築的港口區' },
+    { name: '熊本城', station: '熊本駅', emoji: '🏯', description: '日本三大名城之一' },
+    { name: '福岡塔', station: '西新駅', emoji: '🗼', description: '福岡地標，可眺望博多灣' },
+    { name: '天神地下街', station: '天神駅', emoji: '🛍️', description: '福岡最大購物街' },
+    { name: '柳川遊船', station: '西鉄柳川駅', emoji: '🚣', description: '乘坐小舟遊覽水鄉' },
+    { name: '博多運河城', station: '中洲川端駅', emoji: '🏢', description: '大型購物娛樂複合設施' }
+  ],
+  footer: '💡 或直接詢問：「從博多站到太宰府天滿宮」'
+} as const;
 
-// Transportation ticket information
-const TICKET_INFO = `🎫 福岡交通票券資訊
-
-【JR 九州鐵路周遊券】
-📍 類型：
-・北九州版：3日券 ¥11,000 / 5日券 ¥14,000
-・全九州版：3日券 ¥20,000 / 5日券 ¥23,000
-・南九州版：3日券 ¥9,000
-
-💡 使用範圍：
-・可搭乘 JR 九州所有列車（含新幹線）
-・部分版本限制區域
-
-🛒 購買地點：
-・日本海外旅行社
-・博多站綠色窗口（JR Ticket Office）
-
-【福岡悠遊卡（FUKUOKA TOURIST CITY PASS）】
-💰 1日券：¥820
-📍 使用範圍：
-・福岡市地鐵全線
-・西鐵巴士市內線
-
-【SUGOCAⓔ交通IC卡】
-💡 儲值式交通卡
-・地鐵、JR、巴士通用
-・便利商店可使用
-
-📌 提醒：
-・持 JR Pass 無法搭乘私鐵（西鐵）
-・建議根據行程選擇適合票券`;
-
-// Emergency information
-const EMERGENCY_INFO = `🆘 緊急求助資訊
-
-【車站服務】
-🏢 車站服務台：駅員室（えきいんしつ）
-📞 JR 九州客服：092-431-6238
-
-【緊急聯絡】
-🚨 警察：110（免費）
-🚑 救護車/消防：119（免費）
-
-【簡單日語應急用語】
-・我迷路了
-  → 道に迷いました
-  （Michi ni mayoimashita）
-
-・請幫忙
-  → 助けてください
-  （Tasukete kudasai）
-
-・我不會說日文
-  → 日本語が話せません
-  （Nihongo ga hanasemasen）
-
-・請說英文
-  → 英語で話してください
-  （Eigo de hanashite kudasai）
-
-・請問廁所在哪裡？
-  → トイレはどこですか？
-  （Toire wa doko desuka?）
-
-・這個多少錢？
-  → いくらですか？
-  （Ikura desuka?）
-
-【福岡重要地點】
-🏥 福岡市急救醫療中心：092-847-1099
-🇹🇼 台北駐福岡辦事處：092-734-2810
-📍 地址：福岡市中央區天神 2-14-8
-
-💡 小提醒：
-・日本警察局都有英文/中文翻譯服務
-・大車站都有服務中心可協助
-・保持冷靜，善用翻譯 App`;
+/**
+ * Emergency Information Content
+ */
+const EMERGENCY_CONTENT: EmergencyContent = {
+  title: '🆘 緊急求助資訊',
+  stationService: {
+    title: '【車站服務】',
+    items: [
+      '🏢 車站服務台：駅員室（えきいんしつ）',
+      '📞 JR 九州客服：092-431-6238'
+    ]
+  },
+  emergencyContacts: {
+    title: '【緊急聯絡】',
+    items: [
+      '🚨 警察：110（免費）',
+      '🚑 救護車/消防：119（免費）'
+    ]
+  },
+  japanesePhases: {
+    title: '【簡單日語應急用語】',
+    items: [
+      {
+        chinese: '我迷路了',
+        japanese: '道に迷いました',
+        romaji: 'Michi ni mayoimashita'
+      },
+      {
+        chinese: '請幫忙',
+        japanese: '助けてください',
+        romaji: 'Tasukete kudasai'
+      },
+      {
+        chinese: '我不會說日文',
+        japanese: '日本語が話せません',
+        romaji: 'Nihongo ga hanasemasen'
+      },
+      {
+        chinese: '請說英文',
+        japanese: '英語で話してください',
+        romaji: 'Eigo de hanashite kudasai'
+      },
+      {
+        chinese: '請問廁所在哪裡？',
+        japanese: 'トイレはどこですか？',
+        romaji: 'Toire wa doko desuka?'
+      },
+      {
+        chinese: '這個多少錢？',
+        japanese: 'いくらですか？',
+        romaji: 'Ikura desuka?'
+      }
+    ]
+  },
+  importantLocations: {
+    title: '【福岡重要地點】',
+    items: [
+      '🏥 福岡市急救醫療中心：092-847-1099',
+      '🇹🇼 台北駐福岡辦事處：092-734-2810',
+      '📍 地址：福岡市中央區天神 2-14-8'
+    ]
+  },
+  tips: {
+    title: '💡 小提醒：',
+    items: [
+      '・日本警察局都有英文/中文翻譯服務',
+      '・大車站都有服務中心可協助',
+      '・保持冷靜，善用翻譯 App'
+    ]
+  }
+};
 
 const SYSTEM_INSTRUCTION = `你是一位專業的日本交通調度員 (Professional Japan Transit Dispatcher)。
 
@@ -284,18 +346,6 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
     events.forEach((event: LineWebhookEvent) => {
       const replyToken = event.replyToken;
 
-      // Handle location message
-      if (event.type === 'message' && event.message?.type === 'location') {
-        try {
-          const location = event.message as unknown as LocationMessage;
-          handleLocationMessage(replyToken, location.latitude, location.longitude);
-        } catch (error) {
-          console.log('Error processing location: ' + (error as Error).toString());
-          sendLineMessage(replyToken, '位置處理發生錯誤，請稍後再試');
-        }
-        return;
-      }
-
       // Handle text message
       if (event.type === 'message' && event.message?.type === 'text') {
         const userMessage = event.message.text;
@@ -305,46 +355,26 @@ function doPost(e: GoogleAppsScript.Events.DoPost): GoogleAppsScript.Content.Tex
         }
 
         try {
-          // Check for feature keywords
-          const menuKeywords = ['選單', '菜單', '熱門路線', '路線', 'menu'];
+          // Check for Rich Menu keywords (只處理 3 個 Rich Menu 功能)
           const helpKeywords = ['幫助', '說明', '教學', 'help', '使用方法', '使用說明'];
-          const locationKeywords = ['我的位置', '位置', '附近', '最近的車站'];
           const attractionKeywords = ['熱門景點', '景點', '觀光', '旅遊'];
-          const ticketKeywords = ['交通票券', '票券', 'JR Pass', '周遊券'];
           const emergencyKeywords = ['緊急求助', '求助', '迷路', '幫忙', 'SOS'];
-          const resetKeywords = ['重新查詢', '重新開始', '重來', '清空', 'reset'];
 
-          const isMenuRequest = menuKeywords.some(keyword => userMessage.includes(keyword));
           const isHelpRequest = helpKeywords.some(keyword => userMessage.includes(keyword));
-          const isLocationRequest = locationKeywords.some(keyword => userMessage.includes(keyword));
           const isAttractionRequest = attractionKeywords.some(keyword => userMessage.includes(keyword));
-          const isTicketRequest = ticketKeywords.some(keyword => userMessage.includes(keyword));
           const isEmergencyRequest = emergencyKeywords.some(keyword => userMessage.includes(keyword));
-          const isResetRequest = resetKeywords.some(keyword => userMessage.includes(keyword));
 
-          if (isLocationRequest) {
-            // Handle location request
-            handleLocationRequest(replyToken);
-          } else if (isAttractionRequest) {
-            // Send attractions menu
+          if (isAttractionRequest) {
+            // 直接回覆熱門景點選單 (不經過 Gemini)
             sendAttractionsMenu(replyToken);
-          } else if (isTicketRequest) {
-            // Send ticket information
-            sendTicketInfo(replyToken);
-          } else if (isEmergencyRequest) {
-            // Send emergency information
-            sendEmergencyInfo(replyToken);
-          } else if (isResetRequest) {
-            // Reset conversation
-            handleResetConversation(replyToken);
-          } else if (isMenuRequest) {
-            // Send popular routes menu
-            sendMenuMessage(replyToken);
           } else if (isHelpRequest) {
-            // Send help message
+            // 直接回覆使用說明 (不經過 Gemini)
             sendHelpMessage(replyToken);
+          } else if (isEmergencyRequest) {
+            // 直接回覆緊急求助資訊 (不經過 Gemini)
+            sendEmergencyInfo(replyToken);
           } else {
-            // Get response from Gemini
+            // 其他訊息交給 Gemini 處理
             const response = getGeminiResponse(userMessage);
 
             // Send reply via LINE with quick reply buttons
@@ -501,22 +531,6 @@ function sendLineMessage(replyToken: string, text: string): void {
   console.log('Message sent successfully');
 }
 
-/**
- * Generate Quick Reply buttons from Fukuoka routes
- * @returns Quick Reply object with route buttons
- */
-function getQuickReplyButtons(): QuickReply {
-  return {
-    items: FUKUOKA_ROUTES.map(route => ({
-      type: 'action' as const,
-      action: {
-        type: 'message' as const,
-        label: route.label,
-        text: route.text
-      }
-    }))
-  };
-}
 
 /**
  * Send LINE message with Quick Reply buttons
@@ -524,97 +538,30 @@ function getQuickReplyButtons(): QuickReply {
  * @param text - Message text to send
  */
 function sendLineMessageWithQuickReply(replyToken: string, text: string): void {
-  const accessToken = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
-
-  if (!accessToken) {
-    throw new Error('LINE_CHANNEL_ACCESS_TOKEN not found in Script Properties');
-  }
-
-  const url = 'https://api.line.me/v2/bot/message/reply';
-
-  const payload: LineReplyPayload = {
-    replyToken: replyToken,
-    messages: [
-      {
-        type: 'text',
-        text: text,
-        quickReply: getQuickReplyButtons()
-      }
-    ]
-  };
-
-  const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
-    method: 'post',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + accessToken
-    },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  };
-
-  const response = UrlFetchApp.fetch(url, options);
-  const responseCode = response.getResponseCode();
-
-  if (responseCode !== 200) {
-    const responseText = response.getContentText();
-    console.log(`LINE API Error ${responseCode}: ${responseText}`);
-    throw new Error(`LINE API Error ${responseCode}: ${responseText}`);
-  }
-
-  console.log('Message with quick reply sent successfully');
+  // 簡化版本：直接使用 sendLineMessage，不再添加 Quick Reply 按鈕
+  sendLineMessage(replyToken, text);
 }
 
 /**
  * Send popular routes menu to user
  * @param replyToken - Reply token from LINE webhook
  */
-function sendMenuMessage(replyToken: string): void {
-  const menuText = `🚄 福岡周邊熱門路線
-
-請點選下方按鈕快速查詢：
-
-🏯 福岡 ⇄ 熊本
-♨️ 福岡 ⇄ 由布院（湯布院）
-⛩️ 福岡 ⇄ 門司港
-🏙️ 博多站 ⇄ 天神
-✈️ 福岡機場 ⇄ 博多站
-
-💡 或直接輸入查詢，例如：
-「明天早上 9 點博多到熊本」`;
-
-  sendLineMessageWithQuickReply(replyToken, menuText);
-}
-
 /**
- * Send help/instruction message to user
+ * Send help/instruction message to user (using JSON content)
  * @param replyToken - Reply token from LINE webhook
  */
 function sendHelpMessage(replyToken: string): void {
-  const helpText = `📖 JP-Transit Bot 使用說明
+  let helpText = HELP_CONTENT.title + '\n\n';
 
-🔍 **查詢方式：**
-直接輸入您的交通需求，例如：
-・明天早上 9 點博多到熊本
-・今天下午從天神到由布院
-・福岡機場到博多站
+  HELP_CONTENT.sections.forEach(section => {
+    helpText += `${section.icon} **${section.title}**\n`;
+    section.items.forEach(item => {
+      helpText += `${item}\n`;
+    });
+    helpText += '\n';
+  });
 
-📍 **回覆內容包含：**
-・班次時間與路線資訊
-・月台編號
-・💴 票價資訊
-・Google Maps 路線連結
-
-⚡ **快速查詢：**
-輸入「選單」或「熱門路線」
-查看福岡周邊常用路線
-
-💡 **小技巧：**
-・可使用 LINE 語音輸入功能
-・點選回覆中的連結可直接導航
-・支援自然語言查詢
-
-祝您旅途愉快！🎌`;
+  helpText += HELP_CONTENT.footer;
 
   sendLineMessageWithQuickReply(replyToken, helpText);
 }
@@ -907,6 +854,51 @@ function setDefaultRichMenu(richMenuId: string): void {
 }
 
 /**
+ * Create a simple solid color PNG image for Rich Menu
+ * @returns Image blob (2500x1686 solid gray background)
+ */
+function createPlaceholderImage(): GoogleAppsScript.Base.Blob {
+  // Download a placeholder image from a public service
+  // This creates a 2500x1686 gray image
+  const imageUrl = 'https://via.placeholder.com/2500x1686/CCCCCC/FFFFFF?text=JP+Transit+Bot';
+
+  try {
+    const response = UrlFetchApp.fetch(imageUrl);
+    const blob = response.getBlob();
+    return blob.setName('richmenu.png');
+  } catch (error) {
+    console.log('Failed to download placeholder image: ' + (error as Error).toString());
+    throw new Error('Failed to create placeholder image');
+  }
+}
+
+/**
+ * Create Rich Menu without image (image must be uploaded manually in LINE Console)
+ * This is the main function to call for initial setup
+ */
+function setupRichMenuNoImage(): void {
+  try {
+    // Step 1: Create Rich Menu
+    console.log('Creating Rich Menu...');
+    const richMenuId = createRichMenu();
+
+    console.log('✅ Rich Menu created successfully!');
+    console.log(`Rich Menu ID: ${richMenuId}`);
+    console.log('');
+    console.log('📝 Next steps:');
+    console.log('1. Go to LINE Developers Console: https://developers.line.biz/console/');
+    console.log('2. Select your channel → Messaging API → Rich menus');
+    console.log(`3. Find Rich Menu ID: ${richMenuId}`);
+    console.log('4. Click "Edit" → Upload a 2500x1686 image');
+    console.log('5. Click "Set as default"');
+    console.log('');
+    console.log('Or use the Rich Menu editor to create background with text labels.');
+  } catch (error) {
+    console.log('❌ Error creating Rich Menu: ' + (error as Error).toString());
+  }
+}
+
+/**
  * Create and setup Rich Menu with default image
  * This is the main function to call for initial setup
  */
@@ -916,13 +908,9 @@ function setupRichMenu(): void {
     console.log('Creating Rich Menu...');
     const richMenuId = createRichMenu();
 
-    // Step 2: Create a simple placeholder image (2500x1686, solid color)
-    // Note: You can replace this with a custom image later
+    // Step 2: Create a simple placeholder image (solid gray color)
     console.log('Creating placeholder image...');
-    const canvas = Charts.newAreaChart()
-      .setDimensions(2500, 1686)
-      .build();
-    const imageBlob = canvas.getAs('image/png');
+    const imageBlob = createPlaceholderImage();
 
     // Step 3: Upload image
     console.log('Uploading image...');
@@ -935,6 +923,8 @@ function setupRichMenu(): void {
     console.log('✅ Rich Menu setup completed successfully!');
     console.log(`Rich Menu ID: ${richMenuId}`);
     console.log('You can now see the menu in your LINE Bot chat.');
+    console.log('📝 Note: Currently using a placeholder gray image.');
+    console.log('   You can upload a custom image later via LINE Developers Console.');
   } catch (error) {
     console.log('❌ Error setting up Rich Menu: ' + (error as Error).toString());
   }
@@ -943,143 +933,25 @@ function setupRichMenu(): void {
 // ============================================================================
 // Location Functions
 // ============================================================================
-
-/**
- * Handle location request - prompt user to share location
- * @param replyToken - Reply token from LINE webhook
- */
-function handleLocationRequest(replyToken: string): void {
-  const locationText = `📍 請分享您的位置
-
-點擊下方的「位置」按鈕，
-我會幫您找到最近的車站並建議交通方案。
-
-💡 也可以直接告訴我：
-「我在 XX 飯店，要去博多站」`;
-
-  // Send message with location quick reply button
-  const accessToken = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
-
-  if (!accessToken) {
-    throw new Error('LINE_CHANNEL_ACCESS_TOKEN not found in Script Properties');
-  }
-
-  const url = 'https://api.line.me/v2/bot/message/reply';
-
-  const payload = {
-    replyToken: replyToken,
-    messages: [
-      {
-        type: 'text',
-        text: locationText,
-        quickReply: {
-          items: [
-            {
-              type: 'action',
-              action: {
-                type: 'location',
-                label: '📍 分享位置'
-              }
-            }
-          ]
-        }
-      }
-    ]
-  };
-
-  const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
-    method: 'post',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + accessToken
-    },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  };
-
-  const response = UrlFetchApp.fetch(url, options);
-  const responseCode = response.getResponseCode();
-
-  if (responseCode !== 200) {
-    const responseText = response.getContentText();
-    console.log(`LINE API Error ${responseCode}: ${responseText}`);
-    throw new Error(`LINE API Error ${responseCode}: ${responseText}`);
-  }
-
-  console.log('Location request sent successfully');
-}
-
-/**
- * Handle location message - find nearest station and suggest transportation
- * @param replyToken - Reply token from LINE webhook
- * @param latitude - User's latitude
- * @param longitude - User's longitude
- */
-function handleLocationMessage(replyToken: string, latitude: number, longitude: number): void {
-  console.log(`Received location: ${latitude}, ${longitude}`);
-
-  // Find nearest station
-  const nearestStation = findNearestStation(latitude, longitude);
-
-  const locationResponse = `📍 您的位置分析
-
-🚉 最近的車站：${nearestStation}
-
-💡 您可以詢問：
-・從 ${nearestStation} 到博多站
-・從 ${nearestStation} 到天神
-・從 ${nearestStation} 到熱門景點
-
-或直接告訴我您想去的地方！`;
-
-  sendLineMessageWithQuickReply(replyToken, locationResponse);
-}
-
-/**
- * Find nearest station from user's location
- * @param lat - Latitude
- * @param lon - Longitude
- * @returns Nearest station name
- */
-function findNearestStation(lat: number, lon: number): string {
-  let nearestStation = '博多駅';
-  let minDistance = Infinity;
-
-  FUKUOKA_STATIONS.forEach(station => {
-    const distance = Math.sqrt(
-      Math.pow(station.lat - lat, 2) + Math.pow(station.lon - lon, 2)
-    );
-
-    if (distance < minDistance) {
-      minDistance = distance;
-      nearestStation = station.name;
-    }
-  });
-
-  return nearestStation;
-}
-
-// ============================================================================
 // Feature Functions
 // ============================================================================
 
 /**
- * Send attractions menu to user
+ * Send attractions menu to user (using JSON content)
  * @param replyToken - Reply token from LINE webhook
  */
 function sendAttractionsMenu(replyToken: string): void {
-  const attractionsText = `⭐ 福岡周邊熱門景點
+  // Build attractions text from JSON
+  let attractionsText = `${ATTRACTIONS_CONTENT.title}\n\n${ATTRACTIONS_CONTENT.description}\n\n`;
 
-請點選下方景點，我會告訴您如何前往：
-
-${FUKUOKA_ATTRACTIONS.map(attr =>
+  attractionsText += ATTRACTIONS_CONTENT.attractions.map(attr =>
     `${attr.emoji} ${attr.name}\n   ${attr.description}`
-  ).join('\n\n')}
+  ).join('\n\n');
 
-💡 或直接詢問：「從博多站到太宰府天滿宮」`;
+  attractionsText += `\n\n${ATTRACTIONS_CONTENT.footer}`;
 
   // Create quick reply with attraction names
-  const quickReplyItems = FUKUOKA_ATTRACTIONS.map(attr => ({
+  const quickReplyItems = ATTRACTIONS_CONTENT.attractions.map(attr => ({
     type: 'action' as const,
     action: {
       type: 'message' as const,
@@ -1132,34 +1004,32 @@ ${FUKUOKA_ATTRACTIONS.map(attr =>
 }
 
 /**
- * Send ticket information to user
- * @param replyToken - Reply token from LINE webhook
- */
-function sendTicketInfo(replyToken: string): void {
-  sendLineMessageWithQuickReply(replyToken, TICKET_INFO);
-}
-
-/**
- * Send emergency information to user
+ * Send emergency information to user (using JSON content)
  * @param replyToken - Reply token from LINE webhook
  */
 function sendEmergencyInfo(replyToken: string): void {
-  sendLineMessageWithQuickReply(replyToken, EMERGENCY_INFO);
+  // Build emergency info text from JSON
+  let emergencyText = `${EMERGENCY_CONTENT.title}\n\n`;
+
+  emergencyText += `${EMERGENCY_CONTENT.stationService.title}\n`;
+  emergencyText += EMERGENCY_CONTENT.stationService.items.join('\n') + '\n\n';
+
+  emergencyText += `${EMERGENCY_CONTENT.emergencyContacts.title}\n`;
+  emergencyText += EMERGENCY_CONTENT.emergencyContacts.items.join('\n') + '\n\n';
+
+  emergencyText += `${EMERGENCY_CONTENT.japanesePhases.title}\n`;
+  EMERGENCY_CONTENT.japanesePhases.items.forEach(phrase => {
+    emergencyText += `・${phrase.chinese}\n`;
+    emergencyText += `  → ${phrase.japanese}\n`;
+    emergencyText += `  （${phrase.romaji}）\n\n`;
+  });
+
+  emergencyText += `${EMERGENCY_CONTENT.importantLocations.title}\n`;
+  emergencyText += EMERGENCY_CONTENT.importantLocations.items.join('\n') + '\n\n';
+
+  emergencyText += `${EMERGENCY_CONTENT.tips.title}\n`;
+  emergencyText += EMERGENCY_CONTENT.tips.items.join('\n');
+
+  sendLineMessageWithQuickReply(replyToken, emergencyText);
 }
 
-/**
- * Handle conversation reset
- * @param replyToken - Reply token from LINE webhook
- */
-function handleResetConversation(replyToken: string): void {
-  const resetText = `🔄 已重新開始！
-
-請告訴我您的交通需求，例如：
-・明天早上 9 點博多到熊本
-・今天下午從天神到由布院
-・福岡機場到博多站
-
-或點選下方選單快速查詢 👇`;
-
-  sendLineMessageWithQuickReply(replyToken, resetText);
-}
