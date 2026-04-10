@@ -154,6 +154,7 @@ interface EmergencyContent {
 // ============================================================================
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_FALLBACK_MODEL = 'gemini-2.5-flash-lite';
 
 // ============================================================================
 // Rich Menu Content (JSON Format)
@@ -431,7 +432,32 @@ function getGeminiResponse(text: string): string {
     throw new Error('GEMINI_API_KEY not found in Script Properties');
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+  // Try primary model first, fallback to lite model if fails
+  try {
+    console.log(`嘗試使用主要模型: ${GEMINI_MODEL}`);
+    return callGeminiAPI(text, GEMINI_MODEL, apiKey);
+  } catch (primaryError) {
+    console.log(`主要模型失敗: ${(primaryError as Error).message}`);
+    console.log(`切換到備用模型: ${GEMINI_FALLBACK_MODEL}`);
+
+    try {
+      return callGeminiAPI(text, GEMINI_FALLBACK_MODEL, apiKey);
+    } catch (fallbackError) {
+      console.log(`備用模型也失敗: ${(fallbackError as Error).message}`);
+      throw new Error(`所有模型都失敗 - 主要: ${(primaryError as Error).message}, 備用: ${(fallbackError as Error).message}`);
+    }
+  }
+}
+
+/**
+ * Call Gemini API with specified model
+ * @param text - User message
+ * @param model - Gemini model name
+ * @param apiKey - API key
+ * @returns Response text
+ */
+function callGeminiAPI(text: string, model: string, apiKey: string): string {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const payload = {
     system_instruction: {
@@ -476,7 +502,7 @@ function getGeminiResponse(text: string): string {
 
   // Handle errors
   if (responseCode === 429) {
-    throw new Error('Quota exceeded (429)');
+    throw new Error('配額已用完 (429)');
   }
 
   if (responseCode >= 400) {
@@ -488,15 +514,16 @@ function getGeminiResponse(text: string): string {
   const result: GeminiResponse = JSON.parse(responseText);
 
   if (!result.candidates || result.candidates.length === 0) {
-    throw new Error('No candidates in response');
+    throw new Error('回應中沒有候選結果');
   }
 
   const candidate = result.candidates[0];
 
   if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
-    throw new Error('No content in candidate');
+    throw new Error('候選結果中沒有內容');
   }
 
+  console.log(`✅ 成功使用模型: ${model}`);
   return candidate.content.parts[0].text;
 }
 
